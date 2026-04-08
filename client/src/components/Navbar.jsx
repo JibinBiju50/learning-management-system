@@ -56,8 +56,8 @@ export function Navbar(){
 
         {user && user.role=="admin" &&
         <div>
-            <button>My Courses</button>
-            <button>Students</button>
+            <Link to="/admin/enrollments">Enrollments</Link>
+            <Link to="/admin/users">Users</Link>
             <button><Bell size={20}></Bell> </button>
             <button><User size={20}></User> </button>
             <div className="dropdown-menu">

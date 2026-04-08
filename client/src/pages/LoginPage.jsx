@@ -32,7 +32,11 @@ export function LoginPage(){
         mutation.mutate(form, {
             onSuccess: (data) => {
                 login(data.user);
-                navigate("/")
+                const role = data.user.role;
+                if (role === "admin") navigate("/admin");
+                else if (role === "teacher") navigate("/teacher");
+                else if (role === "student") navigate("/student");
+                else navigate("/");
             }
         });
     }

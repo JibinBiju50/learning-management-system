@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAllUsers } from "@/hooks/useAllUsers";
 import { useDeactivateUser } from "@/hooks/useDeactiveUser";
 import { useActivateUser } from "@/hooks/useActiveUser";
+import { useNavigate } from "react-router";
 
 export function ManageUsersPage() {
 
@@ -13,6 +14,8 @@ export function ManageUsersPage() {
 
     const activateMutation = useActivateUser();
 
+    const navigate = useNavigate();
+
     if (isLoading) return <p className="text-center mt-10">Loading users...</p>;
     if (isError) return <p className="text-center mt-10 text-destructive">{error.message}</p>;
 
@@ -20,6 +23,12 @@ export function ManageUsersPage() {
 
     return (
         <div className="max-w-5xl mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Manage Users</h1>
+                <Button onClick={() => navigate("/admin/users/create-teacher")}>
+                    Create Teacher Account
+                </Button>
+            </div>
             <Card>
                 <CardHeader>
                     <CardTitle>All Users</CardTitle>
