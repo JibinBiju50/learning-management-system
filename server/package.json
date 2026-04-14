@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "seed": "node seed.js",
     "migrate:create": "node-pg-migrate create",
     "migrate:up": "node-pg-migrate up",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "vitest": "^4.1.3"
   }
 }
