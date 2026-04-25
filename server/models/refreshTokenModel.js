@@ -6,7 +6,8 @@ export const createRefreshTokenTable = async () => {
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             token TEXT NOT NULL,
-            expires_at TIMESTAMP NOT NULL
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
         );
     `);
 };
@@ -22,7 +23,7 @@ export const deleteRefreshToken = async (token) => {
 }
 
 //calls on refresh token expiry
-export const deletedExpiredToken = async (token) => {
+export const deletedExpiredToken = async () => {
     await query('DELETE FROM refresh_token WHERE expires_at < NOW()');
 }
 

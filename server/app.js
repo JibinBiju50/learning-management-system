@@ -1,6 +1,7 @@
 import express from 'express'
 import authRoute from './routes/authRoute.js'
 import userRoute from './routes/userRoute.js';
+import courseRoute from './routes/courseRoute.js'
 import { errorHandler } from './middleware/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -25,6 +26,8 @@ app.use('/api/auth', authRoute);
 
 //Mount user routes
 app.use('/api/users', userRoute);
+
+app.use('/api/courses', courseRoute);
 
 //Error handler middleware
 app.use(errorHandler);

@@ -53,7 +53,8 @@ export const createUser = async (name, email, hashedPassword, role='student') =>
 
 //to update user info
 export const updateUser = async (id, updates) => {
-  const fields = Object.keys(updates);
+  const ALLOWED_FIELDS = ['name', 'role', 'status'];
+  const fields = Object.keys(updates).filter(f => ALLOWED_FIELDS.includes(f));
 
   if(fields.length === 0) return null;
 

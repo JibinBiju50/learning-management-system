@@ -1,115 +1,115 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import {findByEmail, findById, updateUser, createUser} from '../models/userModel.js'
-import {JWT_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN} from '../config/env.js'
+import { findByEmail, findById, updateUser, createUser } from '../models/userModel.js'
+import { JWT_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN } from '../config/env.js'
 import { deleteRefreshToken, findRefreshToken, saveRefreshToken } from '../models/refreshTokenModel.js';
 
 const SALT_ROUND = 10;
 
 //Issue both access token and refresh token
 export const issueToken = async (userId) => {
-    const accessToken = jwt.sign({id: userId}, JWT_SECRET, {expiresIn: JWT_EXPIRES_IN});
+    const accessToken = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-    const refreshToken = jwt.sign({id: userId}, JWT_REFRESH_SECRET, {expiresIn: JWT_REFRESH_EXPIRES_IN});
+    const refreshToken = jwt.sign({ id: userId }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 
-    return {accessToken, refreshToken};
+    return { accessToken, refreshToken };
 }
 
 //Register new user: hash password and sign a token
-export const registerUser = async (name, email, password) =>{
-       //check whether the email already exist
-        const existingUser = await findByEmail(email)
-   
-        if(existingUser){
-           const error = new Error ("Email is already in use!");
-           error.status = 409;
-           throw error
-        }
+export const registerUser = async (name, email, password) => {
+    //check whether the email already exist
+    const existingUser = await findByEmail(email)
 
-        //hash the password
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUND)
+    if (existingUser) {
+        const error = new Error("Email is already in use!");
+        error.status = 409;
+        throw error
+    }
 
-       //Insert new user to database
-       const user = await createUser(name, email, hashedPassword);
+    //hash the password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUND)
 
-       //issue both tokens
-       const {accessToken, refreshToken} = await issueToken(user.id);
+    //Insert new user to database
+    const user = await createUser(name, email, hashedPassword);
 
-       //persist refresh token so it can be validated and revoked later
-       await saveRefreshToken(user.id, refreshToken);
- 
-       return {user, accessToken, refreshToken};
+    //issue both tokens
+    const { accessToken, refreshToken } = await issueToken(user.id);
+
+    //persist refresh token so it can be validated and revoked later
+    await saveRefreshToken(user.id, refreshToken);
+
+    return { user, accessToken, refreshToken };
 }
 
 //Login: verify password and return token
 export const loginUser = async (email, password) => {
     //Fetch the user record
     const user = await findByEmail(email);
-    if(!user){
+    if (!user) {
         const error = new Error("Invalid email or password");
         error.status = 401;
         throw error;
     }
 
     if (user.status === 'inactive') {
-    const error = new Error("Your account has been deactivated");
-    error.status = 403;
-    throw error;
-    } 
-    
+        const error = new Error("Your account has been deactivated");
+        error.status = 403;
+        throw error;
+    }
+
     //compare the entered password with hasged password
     const match = await bcrypt.compare(password, user.password_hash);
-    if(!match){
+    if (!match) {
         const error = new Error("Invalid email or password");
         error.status = 401;
         throw error;
     }
 
-    const {accessToken, refreshToken} = await issueToken(user.id);
+    const { accessToken, refreshToken } = await issueToken(user.id);
 
     await saveRefreshToken(user.id, refreshToken);
-    
+
     //return user details and token excluding password
-    const {password_hash: _pw, ...safeUser} = user;
-    return {user: safeUser, accessToken, refreshToken};
+    const { password_hash: _pw, ...safeUser } = user;
+    return { user: safeUser, accessToken, refreshToken };
 }
 
 //calls during teacher account registration
-export const registerTeacher = async (name, email, password) =>{
-        //check whether the email already exist
-        const existingUser = await findByEmail(email)
-   
-        if(existingUser){
-           const error = new Error ("Email is already in use!");
-           error.status = 409;
-           throw error
-        }
+export const registerTeacher = async (name, email, password) => {
+    //check whether the email already exist
+    const existingUser = await findByEmail(email)
 
-        //hash the password
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUND)
+    if (existingUser) {
+        const error = new Error("Email is already in use!");
+        error.status = 409;
+        throw error
+    }
 
-       //Insert new user to database
-       const user = await createUser(name, email, hashedPassword, 'teacher');
- 
-       return {user};
+    //hash the password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUND)
+
+    //Insert new user to database
+    const user = await createUser(name, email, hashedPassword, 'teacher');
+
+    return { user };
 }
 
 //Calls when client sends the refresh token to get a new access token
 export const refreshAccessToken = async (token) => {
     const stored = await findRefreshToken(token);
 
-    if(!stored){
-        const error = new Error ("Invalid or revoked refresh token");
+    if (!stored) {
+        const error = new Error("Invalid or revoked refresh token");
         error.status = 401;
         throw error;
     }
-    
+
     try {
         //verify signature and expiry
         const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
-    
+
         //issue a new shoert lived access token only
-        const accessToken = jwt.sign({id: decoded.id}, JWT_SECRET, {expiresIn: JWT_EXPIRES_IN});
+        const accessToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
         return accessToken;
 
@@ -120,12 +120,12 @@ export const refreshAccessToken = async (token) => {
         error.status = 401;
         throw error;
     }
-} 
+}
 
 export const updateUserProfile = async (userId, body) => {
     const { name, email, currentPassword, newPassword } = body;
 
-    const allowedFields = ['name', 'email'];
+    const allowedFields = ['name'];
     const updates = {};
 
     for (const field of allowedFields) {
@@ -153,6 +153,11 @@ export const updateUserProfile = async (userId, body) => {
         }
 
         const user = await findById(userId);
+        if (!user) {
+            const error = new Error("User not found");
+            error.status = 404;
+            throw error;
+        }
         const match = await bcrypt.compare(currentPassword, user.password_hash);
         if (!match) {
             const error = new Error("Current password is incorrect");
