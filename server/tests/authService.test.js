@@ -23,9 +23,9 @@ vi.mock('../config/env.js', () => ({
     JWT_REFRESH_EXPIRES_IN: '7d',
 }));
 
-import { findByEmail, createUser } from '../models/userModel.js';
+import { findByEmail, createUser, findById, updateUser } from '../models/userModel.js';
 import { saveRefreshToken, findRefreshToken, deleteRefreshToken } from '../models/refreshTokenModel.js';
-import { registerUser, loginUser, registerTeacher, refreshAccessToken } from '../services/authService.js';
+import { registerUser, loginUser, registerTeacher, refreshAccessToken, updateUserProfile } from '../services/authService.js';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -163,3 +163,69 @@ describe('refreshAccessToken', () => {
         expect(deleteRefreshToken).toHaveBeenCalledWith(expiredToken);
     });
 });
+
+describe('updateUserProfile', ()=>{
+    const mockUserId = 1;
+    let mockUser;
+    beforeEach(async () => {
+        vi.clearAllMocks();
+        mockUser = {
+            id: mockUserId,
+            name: 'John',
+            email: 'John@test.com',
+            password_hash: await bcrypt.hash('oldpassword', 10), // Now a string
+            role: 'student',
+            status: 'active',
+            created_at: new Date().toISOString()
+        };
+    });
+
+    beforeEach(()=> {
+        vi.clearAllMocks();
+    });
+
+    it('should update the name field', async()=>{
+        findByEmail.mockResolvedValue(null);
+        updateUser.mockResolvedValue({...mockUser, name: 'New Name'});
+
+        const result = await updateUserProfile(mockUserId, {name: 'New Name'});
+
+        expect(updateUser).toHaveBeenCalledWith(mockUserId, {name: 'New Name'});
+        expect(result.name).toBe('New Name');
+    });
+
+    it('should throw 409 if email already in use', async () => {
+        findByEmail.mockResolvedValue({id: 2, email: 'taken@test.com'});
+
+        await expect(updateUserProfile(mockUserId, {email: 'taken@test.com'})).rejects.toThrow('Email is already in use');
+    });
+
+    it('should update password if current password is correct', async () => {
+        findByEmail.mockResolvedValue(null);
+        findById.mockResolvedValue({id: 1, name: 'test user', password_hash: await bcrypt.hash('oldpassword', 10)});
+        updateUser.mockResolvedValue({...mockUser, password_hash: 'newhash'});
+
+        const result = await updateUserProfile(1, {
+            currentPassword: 'oldpassword',
+            newPassword: 'newpassword',
+        });
+
+        expect(findById).toHaveBeenCalledWith(mockUserId);
+        expect(updateUser).toHaveBeenCalled();
+        expect(result.password_hash).toBe('newhash')
+    });
+
+    it('should throw 400 if new password is given and current password is missing', async () => {
+        await expect(updateUserProfile(mockUserId, {newPassword: 'newpassword'})).rejects.toThrow('Current password is required');
+    });
+
+    it('should throw 401 if current password is incorrect', async ()=> {
+        findById.mockResolvedValue({...mockUser, password_hash: await bcrypt.hash('somethingelse', 10)});
+
+        await expect(updateUserProfile(mockUserId, {currentPassword: 'wrongpassword', newPassword:'newpassword'})).rejects.toThrow('Current password is incorrect');
+    });
+
+    it('should throw 400 if no fields to update', async () => {
+        await expect(updateUserProfile(mockUserId, {})).rejects.toThrow('No fields to update');
+    });
+})
